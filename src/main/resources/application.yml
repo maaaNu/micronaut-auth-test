@@ -1,0 +1,45 @@
+micronaut:
+  application:
+    name: authserver
+
+  security:
+    enabled: true
+    intercept-url-map:
+      - pattern: /liquibase
+        http-method: GET
+        access:
+          - isAnonymous()
+    endpoints:
+      login:
+        enabled: true
+        sensitiv: false
+      oauth:
+        enabled: true
+        sensitiv: false
+    token:
+      jwt:
+        enabled: true
+        signatures:
+          secret:
+            generator:
+              secret: NjFkYzJkOWUwZjBmY2E2OWI2NjQzNjVl
+
+datasources:
+  default:
+    url: 'jdbc:h2:~/authserver;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE'
+    username: 'sa'
+    password: ''
+    driverClassName: 'org.h2.Driver'
+
+liquibase:
+  datasources:
+    default:
+      change-log: classpath:db/liquibase-changelog.xml
+
+endpoints:
+  routes:
+    enabled: true
+    sensitive: false
+  health:
+    enabled: true
+    sensitive: false
