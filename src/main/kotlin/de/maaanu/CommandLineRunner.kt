@@ -1,23 +1,24 @@
 package de.maaanu
 
-import io.micronaut.configuration.dbmigration.liquibase.LiquibaseConfigurationProperties
+import io.micronaut.context.annotation.Requires
 import io.micronaut.context.event.ApplicationEventListener
-import io.micronaut.discovery.event.ServiceStartedEvent
+import io.micronaut.runtime.server.event.ServerStartupEvent
+import nu.studer.sample.public_.tables.User.*
+import org.jooq.DSLContext
 import javax.inject.Singleton
-import javax.sql.DataSource
 
 @Singleton
-class CommandLineRunner(val userService: UserService,
-                        val dataSource : DataSource,
-                        val liquibaseConfigurationProperties: LiquibaseConfigurationProperties) : ApplicationEventListener<ServiceStartedEvent> {
+@Requires(beans = [DSLContext::class])
+class CommandLineRunner(private val dslContext: DSLContext) : ApplicationEventListener<ServerStartupEvent> {
 
-    override fun onApplicationEvent(event: ServiceStartedEvent?) {
+    override fun onApplicationEvent(event: ServerStartupEvent?) {
+        dslContext.insertInto(USER)
+                .set(USER.USERNAME, "test")
+                .set(USER.PASSWORD, "123")
+                .execute()
 
-        val user = User()
-        user.username = "Username"
-        user.password = "Pwd"
-        userService.save(user)
-
-        println(userService.getUserByUsername("Username"))
+        dslContext.select(USER.ID, USER.USERNAME, USER.PASSWORD).fetchAny().into(USER::class.java).apply {
+            println(this)
+        }
     }
 }

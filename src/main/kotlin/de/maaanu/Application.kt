@@ -2,6 +2,7 @@ package de.maaanu
 
 import io.micronaut.runtime.Micronaut
 
+
 object Application {
 
     @JvmStatic

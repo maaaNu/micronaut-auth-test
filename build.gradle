@@ -5,6 +5,7 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "1.3.21"
     id "org.jetbrains.kotlin.kapt" version "1.3.21"
     id "org.jetbrains.kotlin.plugin.allopen" version "1.3.21"
+    id 'nu.studer.jooq' version '3.0.3'
 }
 
 version "0.1"
@@ -14,6 +15,7 @@ repositories {
     mavenCentral()
     maven { url "https://jcenter.bintray.com" }
     maven { url "https://dl.bintray.com/spekframework/spek-dev" }
+    maven { url 'https://plugins.gradle.org/m2/' }
 }
 
 dependencyManagement {
@@ -33,8 +35,9 @@ dependencies {
     compile "io.micronaut:micronaut-security-jwt"
     compile "io.micronaut:micronaut-runtime"
     compile "io.micronaut.configuration:micronaut-jdbc-hikari"
-    compile "org.jdbi:jdbi3-kotlin-sqlobject:3.8.2"
-    compile 'io.micronaut.configuration:micronaut-liquibase'
+    compile "io.micronaut.configuration:micronaut-jooq:1.2.0.RC2"
+    compile "io.micronaut.configuration:micronaut-liquibase"
+    compile "org.mindrot:jbcrypt:0.4"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}"
     compile "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}"
 
@@ -44,8 +47,8 @@ dependencies {
     kaptTest "io.micronaut:micronaut-inject-java"
     runtime "ch.qos.logback:logback-classic:1.2.3"
     runtime "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8"
-    runtime 'com.h2database:h2'
 
+    jooqRuntime  'com.h2database:h2'
 
     testAnnotationProcessor "io.micronaut:micronaut-inject-java"
     testCompile "org.assertj:assertj-core:3.12.2"
@@ -93,4 +96,33 @@ compileTestKotlin {
 	    jvmTarget = '1.8' 
 	    javaParameters = true 
 	}
+}
+
+jooq {
+    version = '3.11.9'
+    edition = 'OSS'
+    sample(sourceSets.main) {
+        jdbc {
+            driver = 'org.h2.Driver'
+            url = 'jdbc:h2:~/authserver;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE'
+            user = 'sa'
+            password = ''
+        }
+        generator {
+            name = 'org.jooq.codegen.DefaultGenerator'
+            strategy {
+                name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+                // ...
+            }
+            database {
+                name = 'org.jooq.meta.h2.H2Database'
+                includes = '.*'
+                excludes = ''
+            }
+            target {
+                packageName = 'nu.studer.sample'
+                // directory = ...
+            }
+        }
+    }
 }
