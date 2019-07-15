@@ -1,29 +1,33 @@
 package de.maaanu.config
 
-import io.micronaut.security.authentication.AuthenticationProvider
-import io.micronaut.security.authentication.AuthenticationRequest
-import io.micronaut.security.authentication.AuthenticationResponse
-import org.reactivestreams.Publisher
-import javax.inject.Singleton
-import io.micronaut.security.authentication.AuthenticationFailed
-import io.reactivex.Flowable
-import java.util.ArrayList
-import io.micronaut.security.authentication.UserDetails
-import io.micronaut.http.annotation.Get
+import de.maaanu.jooq.public_.tables.daos.UserDao
+import de.maaanu.util.getPrivilegesFromUser
 import io.micronaut.http.annotation.Controller
-import io.micronaut.http.annotation.Produces
+import io.micronaut.http.annotation.Get
 import io.micronaut.security.annotation.Secured
-import io.micronaut.security.token.Claims
-import io.micronaut.security.token.RolesFinder
+import io.micronaut.security.authentication.*
+import io.reactivex.Flowable
+import org.jooq.DSLContext
+import org.mindrot.jbcrypt.BCrypt
+import org.reactivestreams.Publisher
 import java.security.Principal
-import javax.annotation.Nonnull
+import javax.inject.Singleton
 
 @Singleton
-class UsernamePasswordAuthenticationProvider : AuthenticationProvider {
+class UsernamePasswordAuthenticationProvider(private val userDao: UserDao,
+                                             private val dsl: DSLContext) : AuthenticationProvider {
+
     override fun authenticate(authenticationRequest: AuthenticationRequest<*, *>?): Publisher<AuthenticationResponse> {
-        if (authenticationRequest?.identity == "sherlock" && authenticationRequest.secret == "password") {
-            return Flowable.just(UserDetails(authenticationRequest.identity as String, ArrayList()))
+        if (authenticationRequest is UsernamePasswordCredentials) {
+
+            val user = userDao.fetchOneByUsername(authenticationRequest.username)
+            if (BCrypt.checkpw(authenticationRequest.password, user.password)) {
+                val privileges = getPrivilegesFromUser(user, dsl)
+                        .map { it.privilegeType.name }
+                return Flowable.just(UserDetails(user.username, privileges))
+            }
         }
+
         return Flowable.just(AuthenticationFailed())
     }
 }
@@ -33,19 +37,8 @@ class UsernamePasswordAuthenticationProvider : AuthenticationProvider {
 class HomeController {
 
     @Get("/me")
-    @Secured("ROLE_ADMIN")
+    @Secured("READ")
     internal fun index(principal: Principal): String {
         return principal.name
     }
-}
-
-const val REALM_ACCESS_KEY = "realm_access"
-const val ROLES_KEY = "roles"
-
-class RoleMapper : RolesFinder {
-
-    override fun findInClaims(claims: Claims): MutableList<String> {
-        return mutableListOf("ROLE_USER")
-    }
-
 }
